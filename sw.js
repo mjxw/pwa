@@ -14,6 +14,17 @@ const assets = [
     '/pages/fallback.html '
 ]; // storing request URLs
 
+// cache size limit function
+const limitCacheSize = (name, size) => {
+    caches.open(name).then(cache => {
+        cache.keys().then(keys => {
+            if(keys.length > size) {
+                cache.delete(keys[0]).then(limitCacheSize(name, size)) //keep calling this function until size is under limit
+            }
+        })
+    })
+}
+
 // install service worker
 self.addEventListener('install', event => {
     //console.log('service worker has been installed');
@@ -48,9 +59,14 @@ self.addEventListener('fetch', event => {
             return cacheRes || fetch(event.request).then((fetchRes) => {
                 return caches.open(dynamicCacheName).then((cache => {
                     cache.put(event.request.url, fetchRes.clone()) //put clone of fetch response and put into cache as kv pair
+                    limitCacheSize(dynamicCacheName, 2); //check everytime
                     return fetchRes; // return the original fetch response so we consume it once.
                 }))
             })
-        }).catch(() => caches.match('/pages/fallback.html'))
+        }).catch(() => {
+            if (event.request.url.indexOf('.html') > -1) {
+                return caches.match('/pages/fallback.html')
+            }
+        })
     )
 });
