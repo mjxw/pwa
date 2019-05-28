@@ -59,7 +59,7 @@ self.addEventListener('fetch', event => {
             return cacheRes || fetch(event.request).then((fetchRes) => {
                 return caches.open(dynamicCacheName).then((cache => {
                     cache.put(event.request.url, fetchRes.clone()) //put clone of fetch response and put into cache as kv pair
-                    limitCacheSize(dynamicCacheName, 2); //check everytime
+                    limitCacheSize(dynamicCacheName, 15); //check everytime
                     return fetchRes; // return the original fetch response so we consume it once.
                 }))
             })
