@@ -1,5 +1,5 @@
-const staticCacheName = "site-static-v2"; //app shell cache
-const dynamicCacheName = 'site-dynamic-v1'
+const staticCacheName = "site-static-v4"; //app shell cache
+const dynamicCacheName = 'site-dynamic-v7'
 const assets = [
     '/',
     '/index.html',
@@ -52,21 +52,24 @@ self.addEventListener('activate', event => {
 
 // fetch event
 self.addEventListener('fetch', event => {
-    //console.log('fetch event', event);
-    event.respondWith(
-        caches.match(event.request).then((cacheRes) => {
-            //return pre-cached asset or return initial fetch request
-            return cacheRes || fetch(event.request).then((fetchRes) => {
-                return caches.open(dynamicCacheName).then((cache => {
-                    cache.put(event.request.url, fetchRes.clone()) //put clone of fetch response and put into cache as kv pair
-                    limitCacheSize(dynamicCacheName, 15); //check everytime
-                    return fetchRes; // return the original fetch response so we consume it once.
-                }))
+
+    // dont cache responses from firestore
+    if (event.request.url.indexOf('firestore.googleapis.com') === -1) {
+        event.respondWith(
+            caches.match(event.request).then((cacheRes) => {
+                //return pre-cached asset or return initial fetch request
+                return cacheRes || fetch(event.request).then((fetchRes) => {
+                    return caches.open(dynamicCacheName).then((cache => {
+                        cache.put(event.request.url, fetchRes.clone()) //put clone of fetch response and put into cache as kv pair
+                        limitCacheSize(dynamicCacheName, 15); //check everytime
+                        return fetchRes; // return the original fetch response so we consume it once.
+                    }))
+                })
+            }).catch(() => {
+                if (event.request.url.indexOf('.html') > -1) {
+                    return caches.match('/pages/fallback.html')
+                }
             })
-        }).catch(() => {
-            if (event.request.url.indexOf('.html') > -1) {
-                return caches.match('/pages/fallback.html')
-            }
-        })
-    )
+        )
+    }
 });
